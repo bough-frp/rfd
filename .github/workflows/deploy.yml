@@ -1,0 +1,80 @@
+name: Deploy
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # To push a branch
+      pages: write  # To push to a GitHub Pages site
+      id-token: write # To update the deployment status
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Summary Header
+        run: echo -e '# Build Result\n## Tool Versions' >> $GITHUB_STEP_SUMMARY
+
+      - name: Install mdbook
+        run: |
+          tag="v0.4.52"
+          url="https://github.com/rust-lang/mdbook/releases/download/${tag}/mdbook-${tag}-x86_64-unknown-linux-gnu.tar.gz"
+          mkdir mdbook
+          curl -sSL $url | tar -xz --directory=./mdbook
+          echo `pwd`/mdbook >> $GITHUB_PATH
+
+          latest_tag=$(curl 'https://api.github.com/repos/rust-lang/mdbook/releases/latest' | jq -r '.tag_name')
+          newer_version=""
+          if ! [ "${tag}" = "${latest_tag}" ] ; then
+            newer_version="\n    - A newer version is available: ${latest_tag}"
+          fi
+          echo -e "- Installed mdbook ${tag}${newer_version}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Install mdbook-linkcheck
+        run: |
+          tag="v0.7.7"
+          url="https://github.com/Michael-F-Bryan/mdbook-linkcheck/releases/download/${tag}/mdbook-linkcheck.x86_64-unknown-linux-gnu.zip"
+          curl -sSL $url -o mdbook/mdbook-linkcheck.zip
+          unzip mdbook/mdbook-linkcheck.zip -d mdbook -x README.md LICENSE
+          chmod ugo+x mdbook/mdbook-linkcheck
+
+          latest_tag=$(curl 'https://api.github.com/repos/Michael-F-Bryan/mdbook-linkcheck/releases/latest' | jq -r '.tag_name')
+          newer_version=""
+          if ! [ "${tag}" = "${latest_tag}" ] ; then
+            newer_version="\n    - A newer version is available: ${latest_tag}"
+          fi
+          echo -e "- Installed mdbook-linkcheck ${tag}${newer_version}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Install mdbook-admonish
+        run: |
+          tag="v1.20.0"
+          url="https://github.com/tommilligan/mdbook-admonish/releases/download/${tag}/mdbook-admonish-${tag}-x86_64-unknown-linux-gnu.tar.gz"
+          curl -sSL $url | tar -xz --directory=./mdbook
+
+          latest_tag=$(curl 'https://api.github.com/repos/tommilligan/mdbook-admonish/releases/latest' | jq -r '.tag_name')
+          newer_version=""
+          if ! [ "${tag}" = "${latest_tag}" ] ; then
+            newer_version="\n    - A newer version is available: ${latest_tag}"
+          fi
+          echo -e "- Installed mdbook-admonish ${tag}${newer_version}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Build Book
+        run: mdbook build
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Upload entire repository
+          path: 'book/html'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
