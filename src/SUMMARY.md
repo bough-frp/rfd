@@ -1,3 +1,3 @@
 # Summary
 
-- [Chapter 1](./chapter_1.md)
+- [Guiding Principles](./rfd-0001-guiding-principles.md)
