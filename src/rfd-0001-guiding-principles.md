@@ -6,7 +6,7 @@ Rust, and there are a number of ideals we want to strive for:
 ## Strong Adherence to the Sodium FRP Denotational Semantics
 
 Software needs to be more composable. Instead of using LLMs to
-generate reams of new code in existing languages lets build better
+generate reams of new code in existing languages we should build better
 tools and languages that are expressive enough that we don't need to
 use LLMs.
 
@@ -35,14 +35,14 @@ Bough's public API surface should be entirely safe Rust and take
 advantage of Rust's type system to the fullest to provide an ergonomic
 and idiomatic experience writing FRP in Rust. Writing correct FRP code
 in Bough should be easy and obvious, violating the expectations of the
-Bough FRP engine should as be difficult and awkward as possible.
+Bough FRP engine should be as difficult and awkward as possible.
 
 ## As Performant as Possible
 
 FRP is a higher-level abstraction and as such we expect to sacrifice
 some performance for the sake of safety and ergonomics. But Bough is
-still a Rust library so let's not leave any obvious performance wins
-on the table.
+still a Rust library so we should not leave any obvious performance
+wins on the table.
 
 ## Usable as a Library
 
