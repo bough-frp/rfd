@@ -1,6 +1,7 @@
 name: Deploy
 on:
   workflow_dispatch:
+  pull_request:
   push:
     branches:
       - main
@@ -66,15 +67,19 @@ jobs:
       - name: Build Book
         run: mdbook build
 
+      # A pull request builds and link-checks the book but does not deploy it.
       - name: Setup Pages
+        if: github.event_name != 'pull_request'
         uses: actions/configure-pages@v4
 
       - name: Upload artifact
+        if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
         with:
           # Upload entire repository
           path: 'book/html'
 
       - name: Deploy to GitHub Pages
+        if: github.event_name != 'pull_request'
         id: deployment
         uses: actions/deploy-pages@v4

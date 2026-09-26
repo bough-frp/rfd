@@ -8,6 +8,10 @@ title = "Bough RFD"
 additional-css = ["./assets/css/mdbook-admonish.css"]
 git-repository-url = "https://github.com/bough-frp/rfd"
 
+# The examples use the bough crate, which no playground has.
+[output.html.playground]
+runnable = false
+
 [output.linkcheck]
 
 [preprocessor]

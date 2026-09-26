@@ -67,20 +67,47 @@ The executable denotational semantics in the Sodium repository
 (`denotational/Reactive/Sodium/Denotational.hs`, version 1.1) are
 ported to Rust as an oracle over lists of time-stamped values, the
 `bough-oracle` crate. Every primitive is property-tested against the
-oracle with random programs and random input occurrences, comparing
-occurrences and steps at every instant. The port is cross-checked once
+oracle with random programs and random input events, comparing
+events and steps at every instant. The port is cross-checked once
 against the fixed vectors in `denotational/sodium.hs` and
 `common-tests/SemanticTests.hs`; GHC does not run in CI. Behaviour the
-semantics cannot express (listeners, pins, collection, runtime inputs)
+semantics cannot express (listeners, roots, collection, runtime inputs)
 gets its own property tests with random observation patterns, and the
 public live-node count is the leak assertion.
 
-Exact fidelity means we inherit the corners. `steps` fires on unchanged
-values. `switch_cell` emits a step at creation and at every switch,
-even when the new inner is quiet. `switch_stream` uses the old stream
-at the switch instant while `switch_cell` uses the new cell's
-post-instant value. `merge` is left-biased. Changing any of these is a
-semantics change and needs its own RFD, not an implementation choice.
+The semantics are vendored into `bough-oracle`: the Haskell, and the
+markdown rendering of the accompanying document, under their BSD
+licence, so a test cites the section it holds the engine to and stays
+correct after the internals it was written against are replaced. The
+random-program generator produces loops and diamonds through loops from
+its first version, because every correctness problem the Bevy port's
+research met involved a loop, and the `lift2` shape it filed as
+`sodium-rust#52`, a cell held through a loop lifted together with
+something upstream of itself, is a fixed test written against the
+specification. The engine and the oracle also run on `wasm32-wasip1`
+under wasmtime once the engine exists ([RFD 7](./rfd-0007-targets.md)).
+
+Exact fidelity means we inherit the corners. `listen_steps` fires on a
+step to an equal value. `switch_cell` emits a step at creation and at
+every switch, even when the new inner is quiet. `switch_stream` uses
+the old stream at the switch instant while `switch_cell` uses the new
+cell's
+post-instant value. `merge` takes a combining function, called as
+`f(left, right)` when both streams fire in one instant; `or_else` is
+the left-biased one. Changing any of these is a semantics change and
+needs its own RFD, not an implementation choice.
+
+### Test Affordances
+
+Five, and nothing beyond them, because test-only introspection is how
+it leaks into the engine: a runtime setting that collects after every
+transaction; a debug dump of the graph behind a cargo feature; node ids
+allocated deterministically in creation order, so a failure reproduces;
+the public live-node count; and a seeded setting that shuffles listener
+dispatch order and the evaluation order of independent nodes, so the
+property tests run under random orders and a user's tests surface
+order-dependent listeners. The fifth is what makes the claim that order
+cannot matter a test that can fail rather than a sentence.
 
 ### What Fast Means
 
@@ -93,7 +120,7 @@ timed by criterion by hand:
   to the shape.
 - Frame: a thousand inputs per transaction into ten thousand nodes
   with most of them affected. The baseline is a loop over the values.
-- Shallow: one input through three stages, plus a variant with a
+- Shallow: one input through three adapters, plus a variant with a
   `share` in the middle so one real node hop is measured. The baseline
   is plain function calls.
 
@@ -106,7 +133,23 @@ that is the usual FRP advice, cells of collections rather than
 collections of cells. `iai-callgrind` runs the same shapes in CI as a
 regression gate on instruction counts. It does not measure the bar,
 because instruction counts do not track wall-clock across cache
-effects.
+effects. Code size on wasm32 is reported as information in the same
+way, and has no gate ([RFD 7](./rfd-0007-targets.md)).
+
+### Targets
+
+Native with `std`, bare metal on Cortex-M without it, the web through
+`wasm32-unknown-unknown` and wasm-bindgen, and Bevy as a host are
+first-class targets. A decision that breaks one is a decision to
+revisit, and continuous integration checks the core for each of them on
+every push ([RFD 7](./rfd-0007-targets.md)).
+
+### Dependencies
+
+The engine crate has zero runtime dependencies in its default feature
+set. A feature may add one when it is the seam an ecosystem already
+implements, as `critical-section` is for bare metal. `proptest`,
+`criterion` and `iai-callgrind` are development dependencies.
 
 ### Naming
 
